@@ -1,0 +1,19 @@
+[package]
+name = "ambients"
+version = "0.1.0"
+authors = ["Mark Henderson <henderson.mark@gmail.com>"]
+edition = "2018"
+description = "Placeholder"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cid = "0.3.1"
+multihash = "0.8.0"
+asn1_der = "0.6.2"
+rand = "0.7.2"
+sha2 = "0.8.0"
+# secp256k1 = "0.15.5"
+zeroize = "0.10.1"
+libsecp256k1 = "0.2.2"
