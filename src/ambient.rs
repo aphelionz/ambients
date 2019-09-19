@@ -69,10 +69,10 @@ impl<'a> Ambient<'a> {
 
         let signature = keypair.secret().sign(program.as_bytes()).unwrap();
         let manifest = Manifest::new(&program_cid, name, keys, creator, signature);
-        println!("{:?}", manifest);
+        // println!("{:?}", manifest);
 
         let manifest_cid = hash(&manifest);
-        println!("{:?}", manifest_cid.to_string());
+        // println!("{:?}", manifest_cid.to_string());
         Ambient { cid: manifest_cid, name, program }
     }
 }
@@ -94,7 +94,7 @@ mod tests {
     fn hello_world() {
         let program = "string[hello[]]";
         let ambient = Ambient::new("hello-world", program);
-        println!("{}", ambient)
+        // println!("{}", ambient)
     }
 
     // fn ambient_new() {

@@ -78,14 +78,14 @@ trait OpCode {}
 /// capabilities and co-capabilities:
 #[derive(Debug)]
 enum Capability {
-    Create = 0,
-    Deploy = 1,
-    In = 2,
-    In_ = 3,
-    Out = 4,
-    Out_ = 5,
-    Open = 6,
-    Open_ = 7
+    create = 0,
+    deploy = 1,
+    r#in = 2,
+    in_ = 3,
+    out = 4,
+    out_ = 5,
+    open = 6,
+    open_ = 7
 }
 
 impl OpCode for Capability {}
@@ -93,14 +93,14 @@ impl OpCode for Capability {}
 impl Display for Capability {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Capability::Create => write!(f, "0 create"),
-            Capability::Deploy => write!(f, "1 deploy"),
-            Capability::In => write!(f, "2 in"),
-            Capability::In_ => write!(f, "3 in_"),
-            Capability::Out => write!(f, "4 out"),
-            Capability::Out_ => write!(f, "5 out_"),
-            Capability::Open => write!(f, "6 open"),
-            Capability::Open_ => write!(f, "7 open_")
+            Capability::create => write!(f, "0 create"),
+            Capability::deploy => write!(f, "1 deploy"),
+            Capability::r#in => write!(f, "2 in"),
+            Capability::in_ => write!(f, "3 in_"),
+            Capability::out => write!(f, "4 out"),
+            Capability::out_ => write!(f, "5 out_"),
+            Capability::open => write!(f, "6 open"),
+            Capability::open_ => write!(f, "7 open_")
         }
     }
 }
@@ -304,7 +304,8 @@ enum Distribution {
     r#return = 3
 }
 
-/// Marker trait for `OpCode`
+impl OpCode for Distribution {}
+
 impl OpCode for Computation {}
 
 impl Display for Computation {
@@ -319,8 +320,8 @@ impl Display for Computation {
 impl Display for Distribution {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Distribution::call => write!(f, "1 call"),
-            Distribution::r#return => write!(f, "2 arg"),
+            Distribution::r#return => write!(f, "3 return"),
+            Distribution::call => write!(f, "1 call")
         }
     }
 }
@@ -334,8 +335,8 @@ impl Display for Distribution {
 pub trait Target {
 }
 
-impl Target for Computation {
-}
+impl Target for Computation { }
+impl Target for Distribution { }
 
 impl<'a, O, T> Instruction<'a, O, T>
 where O: OpCode,
@@ -363,29 +364,29 @@ mod tests {
     #[test]
     fn instruction_display() {
         let ambient = Ambient::new("beep-boop", "beep[boop[]]");
-        let instruction = Instruction::new(Capability::Create, &ambient);
+        let instruction = Instruction::new(Capability::create, &ambient);
         assert_eq!(r#"(0 create, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::Deploy, &ambient);
+        let instruction = Instruction::new(Capability::deploy, &ambient);
         assert_eq!(r#"(1 deploy, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::In, &ambient);
+        let instruction = Instruction::new(Capability::r#in, &ambient);
         assert_eq!(r#"(2 in, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::In_, &ambient);
+        let instruction = Instruction::new(Capability::in_, &ambient);
         assert_eq!(r#"(3 in_, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::Out, &ambient);
+        let instruction = Instruction::new(Capability::out, &ambient);
         assert_eq!(r#"(4 out, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::Out_, &ambient);
+        let instruction = Instruction::new(Capability::out_, &ambient);
         assert_eq!(r#"(5 out_, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::Open, &ambient);
+        let instruction = Instruction::new(Capability::open, &ambient);
         assert_eq!(r#"(6 open, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Capability::Open_, &ambient);
+        let instruction = Instruction::new(Capability::open_, &ambient);
         assert_eq!(r#"(7 open_, "ambient")"#, format!("{}", instruction));
-        let instruction = Instruction::new(Computation::Func, &Computation::Func);
+        let instruction = Instruction::new(Computation::func, &Computation::func);
         assert_eq!(r#"(0 func, 0 func)"#, format!("{}", instruction));
-        let instruction = Instruction::new(Computation::Call, &Computation::Call);
-        assert_eq!(r#"(1 call, 1 call)"#, format!("{}", instruction));
-        let instruction = Instruction::new(Computation::Arg, &Computation::Arg);
+        let instruction = Instruction::new(Computation::arg, &Computation::arg);
         assert_eq!(r#"(2 arg, 2 arg)"#, format!("{}", instruction));
-        let instruction = Instruction{ opcode: Computation::Return, target: &Computation::Return };
+        let instruction = Instruction{ opcode: Distribution::r#return, target: &Distribution::r#return };
         assert_eq!(r#"(3 return, 3 return)"#, format!("{}", instruction));
+        let instruction = Instruction::new(Distribution::call, &Distribution::call);
+        assert_eq!(r#"(1 call, 1 call)"#, format!("{}", instruction));
     }
 }
