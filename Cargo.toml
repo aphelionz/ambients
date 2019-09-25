@@ -21,6 +21,5 @@ libsecp256k1 = "0.2.2"
 [workspace]
 members = [
     "crates/parser",
-    "crates/lexer",
     "crates/ast"
 ]
