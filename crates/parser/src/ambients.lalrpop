@@ -1,0 +1,60 @@
+// Special thanks to @Marwes (Markus Westerlind) on Gitter
+// use std::str::FromStr;
+use crate::ast::{ Exec, Expr };
+use crate::ast::Exec::{ Serial, Parallel };
+
+grammar;
+
+pub Execution: Exec<'input> = {
+    <e0: SubExecution> <e_n: ("|" <SubExecution>)+> => {
+        let mut v: Vec<Exec> = Vec::new();
+        v.push(e0);
+        for e in e_n { v.push(e) }
+        Parallel(v)
+    },
+    SubExecution
+}
+
+pub SubExecution: Exec<'input> = {
+    <e0: ThirdTier> <e_n: ("." <ThirdTier>)+> => {
+        let mut v: Vec<Exec> = Vec::new();
+        v.push(e0);
+        for e in e_n { v.push(e) }
+        Serial(v)
+    },
+    ThirdTier
+}
+
+pub ThirdTier: Exec<'input> = {
+    "(" <e:Execution> ")" => Exec::Group(Box::new(<>)),
+    // "string" "[" <ex:Execution> "]" => Exec::STRING(Box::new(ex)),
+    <id:ID> "[" <ex:Execution> "]" => Exec::Ambient(id, Box::new(ex)),
+
+    // "func" "[" <Execution> "]" => Exec::Func(Box::new(<>)),
+    "open" <id:ID> => Exec::Open(id),
+    "open_" <id:ID> => Exec::Open_(id),
+    "open_" => Exec::Open_("*"),
+    "in" <id:ID> => Exec::In(id),
+    "in_" <id:ID> => Exec::In_(id),
+    "in_" => Exec::In_("*"),
+    "out" <id:ID> => Exec::Out(id),
+    "out_" <id:ID> => Exec::Out_(id),
+    "out_" => Exec::Out_("*"),
+
+    <ID> "[]" => Exec::Noop(<>),
+}
+
+Expr: Expr<'input> = {
+    "create" <id:ID> => Expr::Create(id),
+    "deploy" <id:ID> => Expr::Deploy(id),
+};
+
+match {
+    "|", ".", "[]", "[", "]", "(", ")",
+    "create", "deploy", "in", "out", "open",
+    "in_", "out_", "open_",
+    // "func", "arg", "call",
+    // "string"
+} else {
+    r"[a-zA-Z0-0_\-]+" => ID
+}
