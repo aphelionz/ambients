@@ -22,7 +22,7 @@ $ cargo build
 Currently there is no `main` function but you can see usage in, and also run, the tests.
 
 ```bash
-% cargo 
+% cargo test
 ```
 
 # Contributing
