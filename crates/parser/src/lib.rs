@@ -1,6 +1,50 @@
-#![deny(warnings)]
+// #![deny(warnings)]
 
-mod ast;
+//! An LALR(1) Parser for Ambients Syntax. Work in Progress
+//!
+//! **Input:** a function or program written in Mobile Ambient syntax. For example:
+//!
+//! ```text
+//! string_concat[
+//!   in_ call.open call.(
+//!     func[
+//!       left[
+//!         in_ arg.open arg.in string.in concat
+//!       ]|
+//!       right[
+//!         in_ arg.open arg.in string.in concat
+//!       ]|
+//!       string[
+//!         concat[in_ left|in_ right]|
+//!         in_ left|in_ right
+//!       ]|
+//!       open_
+//!     ]|
+//!     open return.open_
+//!   )
+//! ]
+//! ```
+//!
+//! **Output:** An Abstract Syntax Tree (AST) represented as Rust enum types, to be consumed
+//! elsewhere.
+//!
+//! ## Tokens
+//!
+//! First the parser lexes the input using the following tokens:
+//!
+//! - **Pipes** `|` signify parallel computation (async)
+//! - **Periods** `.` signify serial computation  (await)
+//! - **Brackets** "[" and "]" signify ambient bounds of parallel or
+//! - "]"
+//!
+//! ## Grammar
+//!
+//! Then, the parser uses these grammar rules to construct the AST
+//!
+//! ## Future Work:
+//! - Implement types as described in the [Ambient Protocol Whitepaper](https://github.com/ambientsprotocol/whitepaper/blob/master/05-distributed-programs-as-ambients.md#types)
+
+pub mod ast;
 
 #[macro_use] extern crate lalrpop_util;
 lalrpop_mod!(pub ambients); // synthesized by LALRPOP
@@ -13,25 +57,29 @@ mod test {
 
     #[test]
     fn ambients_values() {
-        let expr = Parser::new().parse("a[]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "a[]").unwrap();
         let expected = Noop("a");
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-        let expr = Parser::new().parse("hello[]").unwrap();
+        let expr = Parser::new().parse(&mut errors, "hello[]").unwrap();
         let expected = Noop("hello");
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
     }
 
     // #[test]
     // fn ambients_typed() {
-    //     let expr = Parser::new().parse("string[hello[]]").unwrap();
+    //     let expr = Parser::new().parse(&mut errors, "string[hello[]]").unwrap();
     //     let expected = STRING(Box::new(Noop("hello")));
     //     assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
     // }
 
     #[test]
     fn ambients_parallel() {
-        let expr = Parser::new().parse("a[] | b[]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "a[] | b[]").unwrap();
 
         let a = Noop("a");
         let b = Noop("b");
@@ -39,7 +87,7 @@ mod test {
         let expected = Parallel(vec![a,b]);
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-        let expr = Parser::new().parse("a[ b[] ] | c[]").unwrap();
+        let expr = Parser::new().parse(&mut errors, "a[ b[] ] | c[]").unwrap();
 
         let b = Noop("b");
         let a = Ambient("a", Box::new(b));
@@ -51,28 +99,30 @@ mod test {
 
     #[test]
     fn ambient_capabilities() {
-        let expr = Parser::new().parse("a[b[open_|c[]]|open b]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "a[b[open_|c[]]|open b]").unwrap();
         let expected = Ambient("a", Box::new(Parallel(vec![
                     Ambient("b", Box::new(Parallel(vec![Open_("*"),Noop("c")]))),
                     Open("b")
         ])));
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-       let expr = Parser::new().parse("a[in b] | b[in_ a]").unwrap();
+       let expr = Parser::new().parse(&mut errors, "a[in b] | b[in_ a]").unwrap();
        let expected = Parallel(vec![
            Ambient("a", Box::new(In("b"))),
            Ambient("b", Box::new(In_("a")))
        ]);
        assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-       let expr = Parser::new().parse("b[a[out b]|out_ a]").unwrap();
+       let expr = Parser::new().parse(&mut errors, "b[a[out b]|out_ a]").unwrap();
        let expected = Ambient("b", Box::new(Parallel(vec![
                    Ambient("a", Box::new(Out("b"))),
                    Out_("a")
        ])));
        assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-       let expr = Parser::new().parse("a[b[open_|c[]]|open b]").unwrap();
+       let expr = Parser::new().parse(&mut errors, "a[b[open_|c[]]|open b]").unwrap();
        let expected = Ambient("a", Box::new(Parallel(vec![
                    Ambient("b", Box::new(Parallel(vec![Open_("*"), Noop("c")]))),
                    Open("b")
@@ -82,7 +132,9 @@ mod test {
 
     #[test]
     fn ambient_paths() {
-        let expr = Parser::new().parse("a[in c] | b[in c] | c[in_ a.in_ b.in d] | d[in_ c]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "a[in c] | b[in c] | c[in_ a.in_ b.in d] | d[in_ c]").unwrap();
         let expected = Parallel(vec![
             Ambient("a", Box::new(In("c"))),
             Ambient("b", Box::new(In("c"))),
@@ -91,7 +143,7 @@ mod test {
         ]);
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-        let expr = Parser::new().parse("a[in b.in_ |b[]]").unwrap();
+        let expr = Parser::new().parse(&mut errors, "a[in b.in_ |b[]]").unwrap();
         let expected = Ambient("a", Box::new(Parallel(vec![
                 Serial(vec![In("b"), In_("*")]),
                 Noop("b")
@@ -102,13 +154,15 @@ mod test {
     // TODO: Func AST?
     #[test]
     fn ambient_func() {
-        let expr = Parser::new().parse("func[in_ x.open x.open_]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "func[in_ x.open x.open_]").unwrap();
         let expected = Ambient("func", Box::new(
                 Serial(vec![In_("x"), Open("x"), Open_("*")])
         ));
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
-        let expr = Parser::new().parse("func[in_ x.open x.open_] | x[in func.open_|result[]] |open func").unwrap();
+        let expr = Parser::new().parse(&mut errors, "func[in_ x.open x.open_] | x[in func.open_|result[]] |open func").unwrap();
         let expected = Parallel(vec![
             Ambient("func", Box::new(Serial(vec![In_("x"), Open("x"), Open_("*")]))),
             Ambient("x", Box::new(Parallel(vec![
@@ -122,7 +176,9 @@ mod test {
 
     #[test]
     fn ambient_arg() {
-        let expr = Parser::new().parse("arg[in_ x.open x.in y.open_] | y[in_ arg.open arg.in func.open_]").unwrap();
+        let mut errors = Vec::new();
+
+        let expr = Parser::new().parse(&mut errors, "arg[in_ x.open x.in y.open_] | y[in_ arg.open arg.in func.open_]").unwrap();
         let expected = Parallel(vec![
             Ambient("arg", Box::new(Serial(vec![
                         In_("x"), Open("x"), In("y"), Open_("*")
@@ -138,7 +194,7 @@ arg[in_ x.open x.in y.open_] | x[in arg.open_|input[]] |
 y[in_ arg.open arg.in func.open_] |
 func[in_ y.open y.open_]
 ";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Parallel(vec![
             Ambient("arg", Box::new(Serial(vec![In_("x"), Open("x"), In("y"), Open_("*")]))),
             Ambient("x", Box::new(Parallel(vec![Serial(vec![In("arg"), Open_("*")]), Noop("input")]))),
@@ -150,6 +206,8 @@ func[in_ y.open y.open_]
 
     #[test]
     fn ambient_function_expression() {
+        let mut errors = Vec::new();
+
         let program = "
 message[
   in func.open_|
@@ -168,7 +226,7 @@ func[
 ]|
 open func
 ";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Parallel(vec![
             Ambient("message", Box::new(Parallel(vec![
                 Serial(vec![In("func"), Open_("*")]),
@@ -194,8 +252,10 @@ open func
 
     #[test]
     fn ambient_call() {
+        let mut errors = Vec::new();
+
         let program = "call[out x.in y.open_]";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Ambient("call", Box::new(Serial(vec![
             Out("x"), In("y"), Open_("*")
         ])));
@@ -205,7 +265,7 @@ open func
 x[call[out x.in y.open_|payload[]] | out_ call] |
 y[in_ call.open call]
 ";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Parallel(vec![
             Ambient("x", Box::new(Parallel(vec![
                 Ambient("call", Box::new(Parallel(vec![
@@ -221,8 +281,10 @@ y[in_ call.open call]
 
     #[test]
     fn ambient_return() {
+        let mut errors = Vec::new();
+
         let program = "return[open_.in x]";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Ambient("return", Box::new(Serial(vec![Open_("*"), In("x")])));
         assert_eq!(&format!("{:?}", expr), &format!("{:?}", expected));
 
@@ -233,7 +295,7 @@ x[
 ] |
 y[in_ call.open call.open return]
 ";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Parallel(vec![
             Ambient("x", Box::new(Parallel(vec![
                 Ambient("call", Box::new(Parallel(vec![
@@ -249,6 +311,8 @@ y[in_ call.open call.open return]
 
     #[test]
     fn ambient_monoid() {
+        let mut errors = Vec::new();
+
         let program = "
 string_concat[
   in_ call.open call.(
@@ -268,7 +332,7 @@ string_concat[
     open return.open_
   )
 ]";
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Ambient("string_concat", Box::new(
             Serial(vec![In_("call"), Open("call"), Group(Box::new(
                 Parallel(vec![
@@ -300,7 +364,7 @@ string[
 ]
 ";
 
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let monad = Ambient("string", Box::new(
             Ambient("concat", Box::new(Parallel(vec![
                 Ambient("left", Box::new(Ambient("string", Box::new(Noop("a"))))),
@@ -326,7 +390,7 @@ string[
 ]
 ";
 
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Ambient("string", Box::new(
             Ambient("concat", Box::new(Parallel(vec![
                 Ambient("left", Box::new(monad)),
@@ -337,6 +401,8 @@ string[
 
     #[test]
     fn ambient_functors() {
+        let mut errors = Vec::new();
+
         let program = "
 identity[
   int[
@@ -345,7 +411,7 @@ identity[
 ]
 ";
 
-        let expr = Parser::new().parse(program).unwrap();
+        let expr = Parser::new().parse(&mut errors, program).unwrap();
         let expected = Ambient("identity", Box::new(
             Ambient("int", Box::new(
                 Ambient("length", Box::new(

@@ -17,9 +17,14 @@ sha2 = "0.8.0"
 # secp256k1 = "0.15.5"
 zeroize = "0.10.1"
 libsecp256k1 = "0.2.2"
+ambients-parser = { path = "crates/parser" }
+ambients-core = { path = "crates/core" }
 
 [workspace]
 members = [
+    "crates/core",
     "crates/parser",
-    "crates/ast"
+    "crates/ast",
+    "crates/jsparser",
+    "crates/reducer"
 ]

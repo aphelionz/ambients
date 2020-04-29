@@ -2,8 +2,10 @@
 // use std::str::FromStr;
 use crate::ast::{ Exec, Expr };
 use crate::ast::Exec::{ Serial, Parallel };
+use lalrpop_util::ErrorRecovery;
 
-grammar;
+#[LALR]
+grammar<'err>(errors: &'err mut Vec<ErrorRecovery<usize, (usize, &'static str), &'static str>>);
 
 pub Execution: Exec<'input> = {
     <e0: SubExecution> <e_n: ("|" <SubExecution>)+> => {

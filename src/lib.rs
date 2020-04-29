@@ -36,9 +36,5 @@
 //! and computation abstractions of the Ambients protocol
 //! 3. generate the bytecode executable from the primitives
 
-mod prelude;
-
-mod ambient;
-mod primitives;
-mod manifest;
-mod keypair;
+extern crate ambients_core;
+extern crate ambients_parser;
