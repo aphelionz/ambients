@@ -18,7 +18,7 @@
 
 use crate::prelude::*;
 use cid::Cid;
-use crate::keypair::PublicKey;
+// use crate::keypair::PublicKey;
 
 #[derive(Debug)]
 pub struct Address<'a> {
@@ -41,12 +41,12 @@ impl<'a> Address<'a> {
 #[derive(Debug)]
 pub struct Creator<'a> {
     id: &'a Cid,
-    public_key: &'a PublicKey
+    // public_key: Option<&'a PublicKey>
 }
 
 impl<'a> Creator<'a> {
-    pub fn new (id: &'a Cid, public_key: &'a PublicKey) -> Creator<'a> {
-        Creator{ id, public_key }
+    pub fn new (id: &'a Cid) -> Creator<'a> {
+        Creator{ id }
     }
 }
 
@@ -54,19 +54,19 @@ impl<'a> Creator<'a> {
 pub struct Manifest<'a> {
     program_cid: &'a Cid,
     name: &'a str,
-    keys: Address<'a>,
-    creator: Creator<'a>,
-    signature: Vec<u8>,
+    keys: Option<Address<'a>>,
+    creator: Option<Creator<'a>>,
+    signature: Option<Vec<u8>>,
 }
 
 impl<'a> Manifest<'a> {
-    pub fn new (program_cid: &'a Cid, name: &'a str, keys: Address<'a>, creator: Creator<'a>, signature: Vec<u8>) -> Manifest<'a> {
+    pub fn new (program_cid: &'a Cid, name: &'a str, keys: Option<Address<'a>>, creator: Option<Creator<'a>>, signature: Option<Vec<u8>>) -> Manifest<'a> {
         Manifest{
             program_cid: program_cid,
             name: name,
-            keys: keys,
-            creator: creator,
-            signature: signature,
+            keys: None,
+            creator: None,
+            signature: None,
         }
     }
 }

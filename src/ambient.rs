@@ -1,11 +1,11 @@
 //! The ambient is the fundamental computation abstraction in ambient calculus. It is a
 
 use cid::{ Cid, Codec, Version };
-use multihash::Hash;
+use multihash::Sha2_256;
 use crate::primitives::Target;
 use crate::manifest::{ Manifest, Address, Creator };
 use crate::prelude::*;
-use crate::keypair::Keypair;
+// use crate::keypair::Keypair;
 
 /// The ambient is the fundamental computation abstraction in ambient calculus. It is a
 /// computation container, with well-defined boundaries that separate an ambient from other
@@ -51,24 +51,24 @@ unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
 fn hash<T>(content: T) -> Cid
 where T: Sized {
     let bytes = unsafe { any_as_u8_slice(&content) };
-    let h = multihash::encode(multihash::Hash::SHA2256, bytes).unwrap();
-    Cid::new(Codec::DagCBOR, Version::V1, &h)
+    let h = Sha2_256::digest(bytes);
+    Cid::new(Version::V1, Codec::DagCBOR, h).unwrap()
 }
 
 impl<'a> Ambient<'a> {
     pub fn new(name: &'a str, program: &'a str) -> Ambient<'a> {
         // TODO: Write access. Right now we'll either do * access or this key only.
         // Currently doing the latter
-        let keypair = Keypair::generate();
-        let keypair_cid = hash(keypair.public());
-        let keys = Address::new("amb", &keypair_cid);
+        // let keypair = Keypair::generate();
+        // let keypair_cid = hash(keypair.public());
+        // let keys = Address::new("amb", &keypair_cid);
 
-        // TODO: Proper creator
-        let creator = Creator::new(&keypair_cid, keypair.public());
+        // // TODO: Proper creator
+        // let creator = Creator::new(&keypair_cid, keypair.public());
         let program_cid = hash(&program);
 
-        let signature = keypair.secret().sign(program.as_bytes()).unwrap();
-        let manifest = Manifest::new(&program_cid, name, keys, creator, signature);
+        // let signature = keypair.secret().sign(program.as_bytes()).unwrap();
+        let manifest = Manifest::new(&program_cid, name, None, None, None);
         // println!("{:?}", manifest);
 
         let manifest_cid = hash(&manifest);
