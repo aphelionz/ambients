@@ -10,7 +10,7 @@ license = "MIT"
 
 [dependencies]
 cid = "0.4.0"
-multihash = "0.10.1"
+multihash = "0.11.4"
 asn1_der = "0.7.1"
 rand = "0.7.3"
 sha2 = "0.8.1"
